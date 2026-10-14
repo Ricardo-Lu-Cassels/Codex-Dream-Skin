@@ -123,37 +123,26 @@
       const radius = Math.min(width, height) * .06;
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      for (const [xRatio, yRatio] of [[.665, .307], [.725, .366]]) {
+      for (const [xRatio, yRatio] of [[.665, .307], [.725, .365]]) {
         const x = left + image.naturalWidth * xRatio * scale;
         const y = top + image.naturalHeight * yRatio * scale;
-        const halo = ctx.createRadialGradient(x, y, 0, x, y, radius * 1.55);
-        halo.addColorStop(0, `rgba(199,230,248,${.3 * intensity})`);
-        halo.addColorStop(.4, `rgba(165,211,239,${.14 * intensity})`);
+        const halo = ctx.createRadialGradient(x, y, 0, x, y, radius * 1.8);
+        halo.addColorStop(0, `rgba(199,230,248,${.2 * intensity})`);
+        halo.addColorStop(.42, `rgba(165,211,239,${.1 * intensity})`);
         halo.addColorStop(1, "rgba(150,205,235,0)");
         ctx.fillStyle = halo;
         ctx.beginPath();
-        ctx.ellipse(x, y, radius * 1.55, radius * .82, -.06, 0, Math.PI * 2);
+        ctx.ellipse(x, y, radius * 1.8, radius, -.06, 0, Math.PI * 2);
         ctx.fill();
-        const irisRadius = radius * .62;
+        const irisRadius = radius * .34;
         const glow = ctx.createRadialGradient(x, y, 0, x, y, irisRadius);
-        glow.addColorStop(0, `rgba(248,253,255,${.88 * intensity})`);
-        glow.addColorStop(.38, `rgba(205,234,250,${.48 * intensity})`);
+        glow.addColorStop(0, `rgba(248,253,255,${.38 * intensity})`);
+        glow.addColorStop(.45, `rgba(205,234,250,${.2 * intensity})`);
         glow.addColorStop(1, "rgba(150,205,235,0)");
         ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.ellipse(x, y, irisRadius, irisRadius * .62, -.06, 0, Math.PI * 2);
+        ctx.ellipse(x, y, irisRadius, irisRadius * .72, -.06, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = intensity * .7;
-        ctx.shadowColor = "#dff2ff";
-        ctx.shadowBlur = 22 * intensity;
-        ctx.strokeStyle = "#f8fcff";
-        ctx.lineWidth = 2;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(x - radius * .27, y);
-        ctx.lineTo(x + radius * .27, y);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
       }
       ctx.restore();
     }
@@ -242,8 +231,8 @@
         const time = clamp(Number(milliseconds) / duration) * 12;
         const portraitToCloseup = phase(time, 3.18, 4.05);
         const zoomOut = phase(time, 5.35, 8.7);
-        const eyeOpen = phase(time, 4.45, 5.15);
-        const eyeGlow = phase(time, 4.28, 4.82) * (1 - phase(time, 5.35, 6.05));
+        const eyeOpen = phase(time, 4.18, 5.82);
+        const eyeGlow = phase(time, 4.82, 5.82) * (1 - phase(time, 6.02, 7.3));
         const fade = phase(time, 10.85, 12);
         host.style.setProperty("opacity", String(1 - fade), "important");
         ctx.globalAlpha = 1;
