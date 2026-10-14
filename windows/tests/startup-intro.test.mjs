@@ -83,10 +83,11 @@ test("renderer failures and watchdog deadlines do not claim clean completion", (
   assert.equal(isCleanIntroResult({}), false);
 });
 
-test("launch durations stay within the renderer's actual supported range", () => {
+test("launch durations include the reference 12-second sequence", () => {
   assert.equal(parseArgs(["--duration-ms", "1800"]).durationMs, 1800);
-  assert.equal(parseArgs(["--duration-ms", "9000"]).durationMs, 9000);
-  for (const duration of ["1000", "1799", "9001", "15000", "5800.5"]) {
+  assert.equal(parseArgs(["--duration-ms", "12000"]).durationMs, 12000);
+  assert.equal(parseArgs(["--duration-ms", "15000"]).durationMs, 15000);
+  for (const duration of ["1000", "1799", "15001", "18000", "12000.5"]) {
     assert.throws(() => parseArgs(["--duration-ms", duration]), /out of range/);
   }
 });

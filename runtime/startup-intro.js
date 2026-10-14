@@ -18,7 +18,7 @@
     if (played && options.replay !== true) return done("already-played");
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return done("reduced-motion");
     if (!validImage(options.image) || (options.closedImage && !validImage(options.closedImage))) return done("invalid-image");
-    const duration = Math.min(9000, Math.max(1800, Number(options.durationMs) || 5800));
+    const duration = Math.min(15000, Math.max(1800, Number(options.durationMs) || 12000));
     const title = String(options.title || "Master").slice(0, 40);
     const manual = options.autoplay === false;
     const host = document.createElement("div");
@@ -29,7 +29,7 @@
     })) host.style.setProperty(name, value, "important");
     const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
-    style.textContent = ":host{color-scheme:dark}canvas{display:block;width:100%;height:100%}button{position:absolute;right:28px;top:22px;border:1px solid #b7a7df40;border-radius:20px;padding:8px 16px;background:#100e2380;color:#dcd4ee;font:12px system-ui,sans-serif;letter-spacing:.08em;cursor:pointer;backdrop-filter:blur(12px)}button:hover,button:focus-visible{background:#28213b;border-color:#bcb0da;outline:none}@media(max-width:600px){button{right:14px;top:14px}}";
+    style.textContent = ":host{color-scheme:dark}canvas{display:block;width:100%;height:100%}button{position:absolute;right:28px;top:22px;border:1px solid #d7e2eb40;border-radius:20px;padding:8px 16px;background:#11192080;color:#e1eaf0;font:12px system-ui,sans-serif;letter-spacing:.08em;cursor:pointer;backdrop-filter:blur(12px)}button:hover,button:focus-visible{background:#263643;border-color:#c8d8e4;outline:none}@media(max-width:600px){button{right:14px;top:14px}}";
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
     const skip = document.createElement("button");
@@ -117,7 +117,7 @@
         centerY - image.naturalHeight * .31 * scale,
         image.naturalWidth * scale, image.naturalHeight * scale);
       const shade = ctx.createLinearGradient(0, centerY - radius, 0, centerY + radius);
-      shade.addColorStop(0, "#120e2800"); shade.addColorStop(1, "#09081750");
+      shade.addColorStop(0, "#10182000"); shade.addColorStop(1, "#060b1050");
       ctx.fillStyle = shade;
       ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
       ctx.restore();
@@ -134,7 +134,7 @@
       ctx.save();
       ctx.globalAlpha = opacity * appear;
       const glow = ctx.createRadialGradient(x, y, radius * .5, x, y, radius * 2.8);
-      glow.addColorStop(0, "#8e57ff21"); glow.addColorStop(.5, "#693fb51c"); glow.addColorStop(1, "#160b3000");
+      glow.addColorStop(0, "#dce9f01e"); glow.addColorStop(.5, "#8fa7b51a"); glow.addColorStop(1, "#0a121800");
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, width, height);
       ctx.save();
@@ -142,7 +142,7 @@
       ctx.scale(expand, expand);
       ctx.translate(-x, -y);
       drawPortrait(image, x, y, radius * .89);
-      ctx.strokeStyle = "#d7cdec";
+      ctx.strokeStyle = "#dce6ed";
       ctx.lineWidth = 1.1;
       for (const size of [.925, 1, 1.095]) {
         ctx.globalAlpha = opacity * appear * (size === 1 ? .75 : .27);
@@ -152,7 +152,7 @@
       ctx.lineWidth = 3;
       ctx.globalAlpha = opacity * appear * .85;
       for (let i = 0; i < 3; i++) {
-        ctx.strokeStyle = i === 1 ? "#e6def7" : "#aa85f3";
+        ctx.strokeStyle = i === 1 ? "#f1f6f9" : "#91aabe";
         ctx.beginPath(); ctx.arc(x, y, radius * 1.02, rotation + i * Math.PI * .68, rotation + i * Math.PI * .68 + .58); ctx.stroke();
       }
       for (let i = 0; i < 80; i++) {
@@ -168,15 +168,15 @@
       ctx.restore();
       ctx.globalAlpha = opacity * appear * (1 - scatter);
       const labelY = y + radius * 1.34;
-      spacedText("WELCOME BACK", x, labelY, 4.6, "11px system-ui, sans-serif", "#b5a5d5");
-      spacedText(title, x, labelY + Math.min(80, height * .092), 3.2, `300 ${Math.min(68, width * .105, height * .081)}px system-ui, sans-serif`, "#f3edf9");
+      spacedText("SILVER DRAGON · INITIALIZING", x, labelY, 2.2, "13px system-ui, sans-serif", "#c5d2dc");
+      spacedText(title, x, labelY + Math.min(80, height * .092), 3.2, `300 ${Math.min(68, width * .105, height * .081)}px system-ui, sans-serif`, "#f3f7fa");
       const lineY = labelY + Math.min(80, height * .092) + 25;
-      ctx.strokeStyle = "#a88ada50"; ctx.lineWidth = .8;
+      ctx.strokeStyle = "#cfdae340"; ctx.lineWidth = .8;
       ctx.beginPath(); ctx.moveTo(x - 96, lineY); ctx.lineTo(x - 17, lineY); ctx.moveTo(x + 17, lineY); ctx.lineTo(x + 96, lineY); ctx.stroke();
-      ctx.fillStyle = "#c2afe6";
+      ctx.fillStyle = "#e3edf4";
       ctx.save(); ctx.translate(x, lineY); ctx.rotate(Math.PI / 4); ctx.fillRect(-2, -2, 4, 4); ctx.restore();
       ctx.globalAlpha = opacity * appear * .38;
-      ctx.strokeStyle = "#b3a0d5";
+      ctx.strokeStyle = "#c7d3dc";
       for (const side of [-1, 1]) {
         const edge = x + side * radius * 1.54;
         ctx.beginPath(); ctx.moveTo(edge - side * 15, y - radius * .47); ctx.lineTo(edge, y - radius * .47);
@@ -188,17 +188,17 @@
     function renderAt(milliseconds) {
       if (!loaded || settled) return false;
       try {
-        const time = clamp(Number(milliseconds) / duration) * 5.8;
-        const portraitToCloseup = phase(time, 1.83, 2.54);
-        const zoomOut = phase(time, 3.48, 4.9);
-        const eyeOpen = phase(time, 2.88, 3.38);
-        const fade = phase(time, 5, 5.8);
+        const time = clamp(Number(milliseconds) / duration) * 12;
+        const portraitToCloseup = phase(time, 3.18, 4.05);
+        const zoomOut = phase(time, 5.35, 8.7);
+        const eyeOpen = phase(time, 4.45, 5.15);
+        const fade = phase(time, 10.85, 12);
         host.style.setProperty("opacity", String(1 - fade), "important");
         ctx.globalAlpha = 1;
-        ctx.fillStyle = "#060713";
+        ctx.fillStyle = "#050a0f";
         ctx.fillRect(0, 0, width, height);
         const baseGlow = ctx.createRadialGradient(width * .5, height * .4, 0, width * .5, height * .4, Math.max(width, height) * .66);
-        baseGlow.addColorStop(0, "#19132f"); baseGlow.addColorStop(1, "#060713");
+        baseGlow.addColorStop(0, "#15212a"); baseGlow.addColorStop(1, "#050a0f");
         ctx.fillStyle = baseGlow; ctx.fillRect(0, 0, width, height);
         const open = images[0];
         const closed = images[1] || open;
@@ -213,12 +213,12 @@
         ctx.save();
         ctx.globalAlpha = (1 - portraitToCloseup) * .5;
         for (const star of stars) {
-          ctx.fillStyle = `rgba(214,198,248,${.22 + .3 * Math.sin(time + star.delay) ** 2})`;
+          ctx.fillStyle = `rgba(218,231,240,${.22 + .3 * Math.sin(time + star.delay) ** 2})`;
           ctx.beginPath(); ctx.arc(star.x * width, star.y * height, star.size, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
         drawHud(time, open, 1 - portraitToCloseup);
-        const scatter = phase(time, 1.60, 2.75);
+        const scatter = phase(time, 2.75, 4.15);
         if (scatter > 0 && scatter < 1) {
           const x = width / 2; const y = height * .41;
           const radius = Math.min(width * .205, height * .242, 245);
@@ -230,16 +230,16 @@
             const py = y + Math.sin(shard.angle) * distance * .74;
             const size = shard.size * (1 - progress * .68);
             ctx.globalAlpha = Math.min(1, scatter * 5) * (1 - progress) ** 1.3;
-            ctx.fillStyle = shard.bright > .55 ? "#dbcdff" : "#9069d1";
+            ctx.fillStyle = shard.bright > .55 ? "#f0f6fa" : "#90a9ba";
             ctx.save(); ctx.translate(px, py); ctx.rotate(progress * shard.spin);
             ctx.fillRect(-size / 2, -size / 2, size, size); ctx.restore();
           }
           ctx.restore();
         }
-        if (time > 2.4 && time < 4.9) {
+        if (time > 3.3 && time < 8.7) {
           const amount = (1 - zoomOut) * .26;
           const vignette = ctx.createRadialGradient(width / 2, height / 2, height * .12, width / 2, height / 2, Math.max(width, height) * .7);
-          vignette.addColorStop(0, "#0a071500"); vignette.addColorStop(1, `rgba(10,7,21,${amount})`);
+          vignette.addColorStop(0, "#080e1300"); vignette.addColorStop(1, `rgba(5,10,15,${amount})`);
           ctx.fillStyle = vignette; ctx.fillRect(0, 0, width, height);
         }
         ctx.globalAlpha = 1;

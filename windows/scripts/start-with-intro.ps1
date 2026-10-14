@@ -4,7 +4,7 @@ param(
   [switch]$PreviewOnly,
   [switch]$Replay,
   [string]$ClosedImagePath,
-  [ValidateRange(1800, 9000)][int]$DurationMs = 5800
+  [ValidateRange(1800, 15000)][int]$DurationMs = 12000
 )
 
 $ErrorActionPreference = 'Stop'

@@ -82,7 +82,7 @@ test('finishes and removes only its own isolated host and all listeners', async 
   assert.ok(host.shadowRoot);
   assert.equal(host.styles.position, 'fixed');
   f.frame(1000);
-  f.frame(6801);
+  f.frame(13001);
   assert.equal((await run.finished).reason, 'completed');
   assert.deepEqual(f.document.documentElement.children, [native]);
   f.document.documentElement.children.pop();
@@ -139,16 +139,21 @@ test('a failed image and a stalled animation both clean up', async () => {
   stalled.assertClean();
 });
 
-test('manual snapshots follow viewport resize and resolve to original wallpaper', async () => {
+test('silver-eye close-up opens, resolves into wallpaper, then fades to Codex', async () => {
   const f = fixture();
-  const run = f.mount({ autoplay: false, closedImage: image });
+  const closed = 'data:image/jpeg;base64,Y2xvc2Vk';
+  const run = f.mount({ autoplay: false, closedImage: closed });
   await f.flush();
   assert.equal(await run.ready, true);
   assert.equal(f.frames.size, 0);
   f.window.innerWidth = 1200;
   f.window.innerHeight = 700;
   f.window.dispatch('resize');
-  assert.equal(run.renderAt(4900), true);
+  assert.equal(run.renderAt(4200), true);
+  assert.ok(f.paints.some((paint) => paint[0].value === closed && paint[3] > 2 * 1672));
+  assert.equal(run.renderAt(4800), true);
+  assert.equal(f.paints.at(-1)[0].value, image);
+  assert.equal(run.renderAt(8800), true);
   const host = f.document.documentElement.children[0];
   const canvas = host.shadowRoot.children[1];
   assert.equal(canvas.width, 1800);
@@ -157,6 +162,8 @@ test('manual snapshots follow viewport resize and resolve to original wallpaper'
   assert.equal(last[0].value, image);
   assert.equal(last[3], Math.max(1200 / 1672, 700 / 941) * 1672);
   assert.equal(last[4], Math.max(1200 / 1672, 700 / 941) * 941);
+  assert.equal(run.renderAt(11425), true);
+  assert.ok(Math.abs(Number(host.styles.opacity) - 0.5) < 1e-9);
   run.skip();
   f.assertClean();
 });

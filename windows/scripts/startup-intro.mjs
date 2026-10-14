@@ -295,7 +295,7 @@ export async function runStartupIntro(options) {
 
 export function parseArgs(argv) {
   const options = { renderer: path.resolve(here, "../../runtime/startup-intro.js"),
-    closedImage: null, replay: false, durationMs: 5800, timeoutMs: 15000 };
+    closedImage: null, replay: false, durationMs: 12000, timeoutMs: 15000 };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--replay") options.replay = true;
     else if (argv[i] === "--renderer") options.renderer = path.resolve(argv[++i]);
@@ -304,7 +304,7 @@ export function parseArgs(argv) {
     else if (argv[i] === "--timeout-ms") options.timeoutMs = Number(argv[++i]);
     else throw new Error("Unsupported startup intro argument.");
   }
-  if (!Number.isInteger(options.durationMs) || options.durationMs < 1800 || options.durationMs > 9000 ||
+  if (!Number.isInteger(options.durationMs) || options.durationMs < 1800 || options.durationMs > 15000 ||
     !Number.isInteger(options.timeoutMs) || options.timeoutMs < 500 || options.timeoutMs > 30000) {
     throw new Error("The intro duration or readiness timeout is out of range.");
   }
