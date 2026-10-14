@@ -161,10 +161,10 @@ test('silver-eye close-up opens, resolves into wallpaper, then fades to Codex', 
   f.window.dispatch('resize');
   assert.equal(run.renderAt(4200), true);
   assert.ok(f.paints.some((paint) => paint[0].value === closed && paint[3] > 2 * 1672));
-  assert.equal(f.gradientStops.some((color) => String(color).startsWith('rgba(244,251,255,')), false);
+  assert.equal(f.gradientStops.some((color) => String(color).startsWith('rgba(248,253,255,')), false);
   assert.equal(run.renderAt(4800), true);
   assert.equal(f.paints.at(-1)[0].value, image);
-  assert.ok(f.gradientStops.some((color) => String(color).startsWith('rgba(244,251,255,')));
+  assert.ok(f.gradientStops.some((color) => String(color).startsWith('rgba(248,253,255,')));
   assert.equal(run.renderAt(8800), true);
   const host = f.document.documentElement.children[0];
   const canvas = host.shadowRoot.children[1];
