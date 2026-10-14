@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import test from "node:test";
-import { assertBrowserIdentity, isCleanIntroResult, isCodexPageTarget, nativeProbeExpression, parseArgs,
+import { assertBrowserIdentity, earlyCoverExpression, isCleanIntroResult, isCodexPageTarget, nativeProbeExpression, parseArgs,
   readLocalImage, readThemeImage, validateDebuggerUrl } from "../scripts/startup-intro.mjs";
 
 const port = 9335;
@@ -90,6 +90,24 @@ test("launch durations include the reference 12-second sequence", () => {
   for (const duration of ["1000", "1799", "15001", "18000", "12000.5"]) {
     assert.throws(() => parseArgs(["--duration-ms", duration]), /out of range/);
   }
+});
+
+test("the early startup cover is opaque, idempotent and removable", () => {
+  const children = [];
+  const window = {};
+  const context = { window, setTimeout: () => 1, clearTimeout() {}, document: {
+    documentElement: { append(element) { children.push(element); element.isConnected = true; } },
+    createElement() { return { style: {}, setAttribute() {}, remove() { this.isConnected = false; } }; },
+  } };
+  const expression = earlyCoverExpression();
+  assert.equal(vm.runInNewContext(expression, context), true);
+  assert.equal(children.length, 1);
+  assert.equal(children[0].style.background, "#050a0f");
+  assert.equal(children[0].style.zIndex, "2147483646");
+  assert.equal(vm.runInNewContext(expression, context), true);
+  assert.equal(children.length, 1);
+  window.__CODEX_DREAM_SKIN_STARTUP_COVER__.remove();
+  assert.equal(children[0].isConnected, false);
 });
 
 test("active themes cannot read outside their local image or supply remote URLs", async () => {

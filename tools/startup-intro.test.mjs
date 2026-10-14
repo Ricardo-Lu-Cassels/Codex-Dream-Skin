@@ -10,6 +10,8 @@ function fixture({ reduced = false, imageError = false, paintError = false } = {
   const frames = new Map();
   const timers = new Map();
   const paints = [];
+  const gradientStops = [];
+  let fills = 0;
   let identifier = 0;
   class Events {
     listeners = new Map();
@@ -23,8 +25,9 @@ function fixture({ reduced = false, imageError = false, paintError = false } = {
   }
   const context = new Proxy({
     measureText: (text) => ({ width: text.length * 8 }),
-    createRadialGradient: () => ({ addColorStop() {} }),
+    createRadialGradient: () => ({ addColorStop(_position, color) { gradientStops.push(color); } }),
     createLinearGradient: () => ({ addColorStop() {} }),
+    fillRect() { fills += 1; },
     drawImage(...args) { if (paintError) throw new Error('paint failed'); paints.push(args); },
   }, { get(target, name) { return name in target ? target[name] : () => {}; } });
   class Element extends Events {
@@ -58,7 +61,7 @@ function fixture({ reduced = false, imageError = false, paintError = false } = {
   });
   vm.runInContext(source, sandbox);
   return {
-    window, document, frames, timers, paints,
+    window, document, frames, timers, paints, gradientStops, fills: () => fills,
     mount: (options = {}) => window.DreamSkinStartupIntro.mount({ image, ...options }),
     flush: async () => { await new Promise((resolve) => setImmediate(resolve)); },
     frame(time) { const entry = frames.entries().next().value; assert.ok(entry); frames.delete(entry[0]); entry[1](time); },
@@ -76,11 +79,15 @@ test('finishes and removes only its own isolated host and all listeners', async 
   const f = fixture();
   const native = { parent: f.document.documentElement };
   f.document.documentElement.children.push(native);
+  let coverRemoved = 0;
+  f.window.__CODEX_DREAM_SKIN_STARTUP_COVER__ = { remove() { coverRemoved += 1; } };
   const run = f.mount({ closedImage: image });
   await f.flush();
+  assert.equal(coverRemoved, 1);
   const host = f.document.documentElement.children[1];
   assert.ok(host.shadowRoot);
   assert.equal(host.styles.position, 'fixed');
+  assert.equal(host.styles.background, '#050a0f');
   f.frame(1000);
   f.frame(13001);
   assert.equal((await run.finished).reason, 'completed');
@@ -118,7 +125,10 @@ for (const cause of ['click', 'Escape', 'hidden']) {
 
 test('reduced motion and external image URLs leave the app untouched', async () => {
   const f = fixture({ reduced: true });
+  let coverRemoved = 0;
+  f.window.__CODEX_DREAM_SKIN_STARTUP_COVER__ = { remove() { coverRemoved += 1; } };
   assert.equal((await f.mount().finished).reason, 'reduced-motion');
+  assert.equal(coverRemoved, 1);
   f.assertClean();
   const other = fixture();
   assert.equal((await other.mount({ image: 'https://example.com/image.jpg' }).finished).reason, 'invalid-image');
@@ -151,8 +161,10 @@ test('silver-eye close-up opens, resolves into wallpaper, then fades to Codex', 
   f.window.dispatch('resize');
   assert.equal(run.renderAt(4200), true);
   assert.ok(f.paints.some((paint) => paint[0].value === closed && paint[3] > 2 * 1672));
+  assert.equal(f.gradientStops.some((color) => String(color).startsWith('rgba(244,251,255,')), false);
   assert.equal(run.renderAt(4800), true);
   assert.equal(f.paints.at(-1)[0].value, image);
+  assert.ok(f.gradientStops.some((color) => String(color).startsWith('rgba(244,251,255,')));
   assert.equal(run.renderAt(8800), true);
   const host = f.document.documentElement.children[0];
   const canvas = host.shadowRoot.children[1];
@@ -164,6 +176,16 @@ test('silver-eye close-up opens, resolves into wallpaper, then fades to Codex', 
   assert.equal(last[4], Math.max(1200 / 1672, 700 / 941) * 941);
   assert.equal(run.renderAt(11425), true);
   assert.ok(Math.abs(Number(host.styles.opacity) - 0.5) < 1e-9);
+  run.skip();
+  f.assertClean();
+});
+
+test('silver particles disperse visibly across the HUD transition', async () => {
+  const f = fixture();
+  const run = f.mount({ autoplay: false });
+  await f.flush();
+  assert.equal(run.renderAt(2900), true);
+  assert.ok(f.fills() > 600);
   run.skip();
   f.assertClean();
 });

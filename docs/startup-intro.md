@@ -1,6 +1,6 @@
 # Optional Master startup intro on Windows
 
-This add-on plays a 12-second silver dragon intro over the real, already-themed Codex window and then removes itself. Its wallpaper comes from the current active theme. It does not replace the native app, keep an intro watcher running, or change model/provider settings.
+This add-on plays a 12-second silver dragon intro over the real, already-themed Codex Store window and then removes itself. A temporary dark cover masks the default startup surface while Dream Skin becomes ready; the intro then replaces that cover and reveals the active wallpaper. It does not replace the native app, keep an intro watcher running, or change model/provider settings.
 
 The add-on requires an existing Windows Setup installation of Codex Dream Skin, its signed bundled Node.js 22+ runtime, and a registered Codex Store package. Keep `windows/scripts/start-with-intro.ps1`, `windows/scripts/startup-intro.mjs`, `runtime/startup-intro.js` and `runtime/image-metadata.mjs` in the same relative layout. Personal art and local state are not part of the repository.
 
@@ -12,7 +12,7 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Hidden -Fil
 
 Launch that shortcut from Explorer. The wrapper delegates startup to the existing installed launcher, including its confirmation before restarting a normal Codex session. A healthy skinned session is reused. Starting a restart helper from inside Codex can make Windows close the child helper when Codex exits; the external shortcut avoids that lifetime problem.
 
-The intro moves through a pulsing silver HUD portrait, a shower of ice-bright fragments, the dragon's eyes opening, and a resolve into the active wallpaper before revealing Codex. It plays once per explicit shortcut invocation. Theme reinjection and page navigation do not play it again. The renderer honors reduced motion and provides a skip action. Failure to prepare the intro leaves the current Codex window available and reports a warning.
+The intro moves through a pulsing silver HUD portrait, a broad radial burst of ice-bright particles, a silver eye glow as the dragon opens her eyes, and a resolve into the active wallpaper before revealing Codex. It plays once per explicit shortcut invocation. Theme reinjection and page navigation do not play it again. The renderer honors reduced motion and provides a skip action. Failure to prepare the intro removes its temporary cover and leaves the current Codex window available.
 
 To preview on the existing live session without running the app launcher:
 

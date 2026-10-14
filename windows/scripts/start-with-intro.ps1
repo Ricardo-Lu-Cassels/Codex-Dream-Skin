@@ -21,6 +21,13 @@ try {
   }
   . $common
   if (-not $PreviewOnly) {
+    $previousBrowserId = $null
+    try {
+      if (Test-Path -LiteralPath $statePath -PathType Leaf) {
+        $previousBrowserId = (Read-DreamSkinState -Path $statePath).browserId
+      }
+    } catch { }
+    $node = Get-DreamSkinNodeRuntime
     # A child process isolates the installed launcher's exit/confirmation path.
     # Run this wrapper from Explorer, not from an app it might need to restart.
     $startArgs = @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $starter)
@@ -31,6 +38,23 @@ try {
     $start = Start-Process -FilePath $powershell `
       -ArgumentList (ConvertTo-DreamSkinArgumentLine -Arguments $startArgs) `
       -WindowStyle Hidden -PassThru
+    $coverAttemptedFor = $null
+    while ($true) {
+      $start.Refresh()
+      if (-not $coverAttemptedFor -and (Test-Path -LiteralPath $statePath -PathType Leaf) -and
+        (Get-Item -LiteralPath $statePath).Length -le 65536) {
+        try {
+          $candidate = Read-DreamSkinState -Path $statePath
+          if ($candidate.browserId -and $candidate.browserId -cne $previousBrowserId) {
+            $coverAttemptedFor = "$($candidate.browserId)"
+            $null = Invoke-DreamSkinNative -FilePath $node.Path `
+              -ArgumentList @($controller, '--early-cover')
+          }
+        } catch { }
+      }
+      if ($start.HasExited) { break }
+      Start-Sleep -Milliseconds 200
+    }
     $start.WaitForExit()
     if ($start.ExitCode -ne 0) { throw 'Dream Skin startup did not complete; the intro was skipped.' }
   }
@@ -48,7 +72,7 @@ try {
   if ($null -eq $identity -or $identity.BrowserId -cne $state.browserId) {
     throw 'The recorded Codex session is no longer current; the intro was skipped.'
   }
-  $node = Get-DreamSkinNodeRuntime
+  if (-not $node) { $node = Get-DreamSkinNodeRuntime }
   $introArgs = @($controller, '--renderer', $renderer, '--duration-ms', "$DurationMs")
   # Each explicit shortcut invocation may play once. No watcher owns the intro.
   if (-not $PreviewOnly -or $Replay) { $introArgs += '--replay' }

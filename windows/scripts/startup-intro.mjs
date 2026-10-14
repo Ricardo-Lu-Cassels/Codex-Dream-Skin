@@ -222,6 +222,70 @@ async function verifyStoreOwner(commonScript, statePath, state) {
   if (result.stdout.trim() !== "verified") throw new Error("The Codex Store listener owner could not be verified.");
 }
 
+export function earlyCoverExpression() {
+  return `(() => {
+    const key='__CODEX_DREAM_SKIN_STARTUP_COVER__';
+    if (window[key]?.element?.isConnected) return true;
+    const root=document.documentElement;
+    if (!root) return false;
+    const element=document.createElement('div');
+    element.setAttribute('data-dream-startup-cover','');
+    Object.assign(element.style,{all:'initial',position:'fixed',inset:'0',zIndex:'2147483646',
+      display:'grid',placeItems:'center',background:'#050a0f',color:'#e5edf2',
+      font:'300 24px system-ui,sans-serif',letterSpacing:'.28em',pointerEvents:'none'});
+    element.textContent='MASTER';
+    root.append(element);
+    const timer=setTimeout(()=>remove(),90000);
+    function remove(){clearTimeout(timer);element.remove();if(window[key]?.element===element)delete window[key];}
+    window[key]={element,remove};
+    return true;
+  })()`;
+}
+
+export async function installEarlyCover() {
+  const stateRoot = path.join(process.env.LOCALAPPDATA, "CodexDreamSkin");
+  const payloadRoot = path.join(process.env.LOCALAPPDATA, "Programs", "CodexDreamSkin", "payload");
+  const statePath = path.join(stateRoot, "state.json");
+  const state = JSON.parse((await readBoundedFile(statePath, 65536)).toString("utf8"));
+  if (state?.schemaVersion !== 3 || state.platform !== "windows" ||
+    !Number.isInteger(state.port) || state.port < 1024 || state.port > 65535 ||
+    typeof state.browserId !== "string" || !ID.test(state.browserId)) {
+    throw new Error("No valid current Dream Skin session is available for the startup cover.");
+  }
+  await verifyStoreOwner(path.join(payloadRoot, "scripts", "common-windows.ps1"), statePath, state);
+  const anchorUrl = assertBrowserIdentity(await fetchJson(state.port, "/json/version"), state.port, state.browserId);
+  const anchor = new CdpSession(anchorUrl);
+  const sessions = [];
+  try {
+    await anchor.open();
+    const deadline = Date.now() + 12000;
+    while (Date.now() < deadline) {
+      if (anchor.closed) throw new Error("The launch-time Codex browser closed.");
+      assertBrowserIdentity(await fetchJson(state.port, "/json/version"), state.port, state.browserId);
+      const targets = await fetchJson(state.port, "/json/list");
+      if (!Array.isArray(targets) || targets.length > 64) throw new Error("Unexpected local CDP target list.");
+      for (const target of targets.filter((item) => isCodexPageTarget(item, state.port))) {
+        const session = new CdpSession(validateDebuggerUrl(target.webSocketDebuggerUrl, state.port, "page"));
+        sessions.push(session);
+        try {
+          await session.open();
+          const installed = await session.evaluate(earlyCoverExpression(), 1000);
+          if (installed) {
+            await verifyStoreOwner(path.join(payloadRoot, "scripts", "common-windows.ps1"), statePath, state);
+            return { installed: true };
+          }
+        } catch { }
+        session.close();
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    throw new Error("The Codex page did not become available for the startup cover.");
+  } finally {
+    for (const session of sessions) session.close();
+    anchor.close();
+  }
+}
+
 export async function runStartupIntro(options) {
   if (process.platform !== "win32") throw new Error("The startup launcher currently requires Windows.");
   const stateRoot = path.join(process.env.LOCALAPPDATA, "CodexDreamSkin");
@@ -313,7 +377,9 @@ export function parseArgs(argv) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    console.log(JSON.stringify(await runStartupIntro(parseArgs(process.argv.slice(2)))));
+    const args = process.argv.slice(2);
+    if (args.length === 1 && args[0] === "--early-cover") console.log(JSON.stringify(await installEarlyCover()));
+    else console.log(JSON.stringify(await runStartupIntro(parseArgs(args))));
   } catch (error) {
     console.error(`Startup intro skipped: ${error?.message || "Unknown local startup failure."}`);
     process.exitCode = 1;

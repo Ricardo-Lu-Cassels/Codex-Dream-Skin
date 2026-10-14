@@ -14,7 +14,14 @@
 
   function mount(options = {}) {
     if (active) return active;
-    const done = (reason) => ({ ready: Promise.resolve(false), finished: Promise.resolve({ reason }), skip() {}, renderAt() {} });
+    const clearEarlyCover = () => {
+      window.__CODEX_DREAM_SKIN_STARTUP_COVER__?.remove?.();
+      delete window.__CODEX_DREAM_SKIN_STARTUP_COVER__;
+    };
+    const done = (reason) => {
+      clearEarlyCover();
+      return { ready: Promise.resolve(false), finished: Promise.resolve({ reason }), skip() {}, renderAt() {} };
+    };
     if (played && options.replay !== true) return done("already-played");
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return done("reduced-motion");
     if (!validImage(options.image) || (options.closedImage && !validImage(options.closedImage))) return done("invalid-image");
@@ -24,8 +31,8 @@
     const host = document.createElement("div");
     host.setAttribute("data-dream-startup-intro", "");
     for (const [name, value] of Object.entries({
-      all: "initial", position: "fixed", inset: "0", "z-index": "2147483646",
-      display: "block", opacity: "1", "pointer-events": "auto", contain: "layout paint style",
+      all: "initial", position: "fixed", inset: "0", "z-index": "2147483647",
+      display: "block", opacity: "1", background: "#050a0f", "pointer-events": "auto", contain: "layout paint style",
     })) host.style.setProperty(name, value, "important");
     const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
@@ -66,6 +73,7 @@
       host.removeEventListener("click", controller.skip);
       for (const image of images) { image.onload = null; image.onerror = null; }
       host.remove();
+      clearEarlyCover();
       if (active === controller) active = null;
       resolveReady(false);
       resolveFinished({ reason });
@@ -85,9 +93,9 @@
     let seed = 48371;
     function random() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     const stars = Array.from({ length: 150 }, () => ({ x: random(), y: random(), size: random() * 1.4 + .3, delay: random() * 6 }));
-    const shards = Array.from({ length: 340 }, () => ({
-      angle: random() * Math.PI * 2, radial: Math.sqrt(random()), speed: .6 + random() * 1.9,
-      size: 1 + random() * 5, spin: random() * 8, bright: random(), delay: random() * .18,
+    const shards = Array.from({ length: 1100 }, () => ({
+      angle: random() * Math.PI * 2, radial: Math.sqrt(random()), speed: .55 + random() * .5,
+      size: 1.5 + random() * 8, spin: random() * 8, bright: random(), delay: random() * .12,
     }));
 
     function spacedText(text, x, y, spacing, font, color) {
@@ -105,6 +113,40 @@
         height / 2 - image.naturalHeight * focusY * scale,
         image.naturalWidth * scale, image.naturalHeight * scale);
       ctx.globalAlpha = 1;
+    }
+
+    function drawEyeGlow(image, zoom, focusX, focusY, intensity) {
+      if (intensity <= 0) return;
+      const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight) * zoom;
+      const left = width / 2 - image.naturalWidth * focusX * scale;
+      const top = height / 2 - image.naturalHeight * focusY * scale;
+      const radius = Math.min(width, height) * .06;
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      for (const [xRatio, yRatio] of [[.665, .307], [.725, .366]]) {
+        const x = left + image.naturalWidth * xRatio * scale;
+        const y = top + image.naturalHeight * yRatio * scale;
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        glow.addColorStop(0, `rgba(244,251,255,${.58 * intensity})`);
+        glow.addColorStop(.3, `rgba(190,226,246,${.3 * intensity})`);
+        glow.addColorStop(1, "rgba(150,205,235,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.ellipse(x, y, radius * 1.05, radius * .42, -.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = intensity * .7;
+        ctx.shadowColor = "#dff2ff";
+        ctx.shadowBlur = 14 * intensity;
+        ctx.strokeStyle = "#f8fcff";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x - radius * .27, y);
+        ctx.lineTo(x + radius * .27, y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
     }
 
     function drawPortrait(image, centerX, centerY, radius) {
@@ -192,6 +234,7 @@
         const portraitToCloseup = phase(time, 3.18, 4.05);
         const zoomOut = phase(time, 5.35, 8.7);
         const eyeOpen = phase(time, 4.45, 5.15);
+        const eyeGlow = phase(time, 4.28, 4.82) * (1 - phase(time, 5.35, 6.05));
         const fade = phase(time, 10.85, 12);
         host.style.setProperty("opacity", String(1 - fade), "important");
         ctx.globalAlpha = 1;
@@ -209,6 +252,7 @@
           const focusY = mix(.31, .5, zoomOut);
           drawArt(closed, zoom, focusX, focusY, closeOpacity);
           if (eyeOpen > 0) drawArt(open, zoom, focusX, focusY, closeOpacity * eyeOpen);
+          drawEyeGlow(open, zoom, focusX, focusY, closeOpacity * eyeGlow);
         }
         ctx.save();
         ctx.globalAlpha = (1 - portraitToCloseup) * .5;
@@ -218,21 +262,22 @@
         }
         ctx.restore();
         drawHud(time, open, 1 - portraitToCloseup);
-        const scatter = phase(time, 2.75, 4.15);
+        const scatter = phase(time, 1.8, 3.9);
         if (scatter > 0 && scatter < 1) {
           const x = width / 2; const y = height * .41;
           const radius = Math.min(width * .205, height * .242, 245);
           ctx.save();
           for (const shard of shards) {
             const progress = clamp((scatter - shard.delay) / (1 - shard.delay));
-            const distance = radius * (.3 + shard.radial * .9) + progress ** 1.4 * Math.max(width, height) * shard.speed;
+            const distance = radius * (.3 + shard.radial * .55) + progress ** 1.15 * Math.max(width, height) * .82 * shard.speed;
             const px = x + Math.cos(shard.angle) * distance;
             const py = y + Math.sin(shard.angle) * distance * .74;
             const size = shard.size * (1 - progress * .68);
-            ctx.globalAlpha = Math.min(1, scatter * 5) * (1 - progress) ** 1.3;
+            ctx.globalAlpha = Math.min(1, scatter * 5) * (.55 + (1 - progress) * .45);
             ctx.fillStyle = shard.bright > .55 ? "#f0f6fa" : "#90a9ba";
-            ctx.save(); ctx.translate(px, py); ctx.rotate(progress * shard.spin);
-            ctx.fillRect(-size / 2, -size / 2, size, size); ctx.restore();
+            ctx.save(); ctx.translate(px, py); ctx.rotate(shard.angle + Math.PI / 2 + progress * shard.spin);
+            ctx.fillRect(-size / 2, -Math.max(.75, size * .11), size * (1 + progress * 1.8), Math.max(1.5, size * .22));
+            ctx.restore();
           }
           ctx.restore();
         }
@@ -286,6 +331,7 @@
         loaded = true;
         played = true;
         renderAt(0);
+        clearEarlyCover();
         resolveReady(!settled);
         if (!manual && !settled) frameId = requestAnimationFrame(tick);
       })
