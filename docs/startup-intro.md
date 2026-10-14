@@ -1,6 +1,6 @@
 # Optional Master startup intro on Windows
 
-This add-on plays a 12-second silver dragon intro over the real, already-themed Codex Store window and then removes itself. A temporary dark cover masks the default startup surface while Dream Skin becomes ready; the intro then replaces that cover and reveals the active wallpaper. It does not replace the native app, keep an intro watcher running, or change model/provider settings.
+This add-on plays a 12-second silver dragon intro over the real, already-themed Codex Store window and then removes itself. While Dream Skin becomes ready, a softly moving, darkened view of the active wallpaper carries drifting silver particles and orbital lines. Once the intro is decoded, the cover fades across it instead of disappearing in a hard cut. The animation starts as soon as the Codex page and its local debugging connection exist; Windows and Codex still own the earlier native startup surface. It does not replace the native app, keep an intro watcher running, or change model/provider settings.
 
 The add-on requires an existing Windows Setup installation of Codex Dream Skin, its signed bundled Node.js 22+ runtime, and a registered Codex Store package. Keep `windows/scripts/start-with-intro.ps1`, `windows/scripts/startup-intro.mjs`, `runtime/startup-intro.js` and `runtime/image-metadata.mjs` in the same relative layout. Personal art and local state are not part of the repository.
 

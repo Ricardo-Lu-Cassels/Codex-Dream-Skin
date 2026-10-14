@@ -222,7 +222,10 @@ async function verifyStoreOwner(commonScript, statePath, state) {
   if (result.stdout.trim() !== "verified") throw new Error("The Codex Store listener owner could not be verified.");
 }
 
-export function earlyCoverExpression() {
+export function earlyCoverExpression(backgroundImage = null) {
+  const safeImage = typeof backgroundImage === "string" && backgroundImage.length <= 15 * 1024 * 1024 &&
+    /^data:image\/(?:png|jpeg|jpg|webp);base64,[a-z\d+/=\s]+$/i.test(backgroundImage)
+    ? `url(${JSON.stringify(backgroundImage)})` : "none";
   return `(() => {
     const key='__CODEX_DREAM_SKIN_STARTUP_COVER__';
     if (window[key]?.element?.isConnected) return true;
@@ -231,12 +234,25 @@ export function earlyCoverExpression() {
     const element=document.createElement('div');
     element.setAttribute('data-dream-startup-cover','');
     Object.assign(element.style,{all:'initial',position:'fixed',inset:'0',zIndex:'2147483646',
-      display:'grid',placeItems:'center',background:'#050a0f',color:'#e5edf2',
-      font:'300 24px system-ui,sans-serif',letterSpacing:'.28em',pointerEvents:'none'});
-    element.textContent='MASTER';
+      overflow:'hidden',background:'#050a0f',opacity:'1',pointerEvents:'none',
+      transition:'opacity 700ms cubic-bezier(.22,1,.36,1)'});
+    element.innerHTML='<style>'+
+      '@keyframes ds-bloom{0%,100%{filter:brightness(.48) blur(7px);transform:scale(1.055)}50%{filter:brightness(.78) blur(1px);transform:scale(1.11)}}'+
+      '@keyframes ds-dust{0%{background-position:0 0,0 0,0 0}100%{background-position:90px -160px,-120px 80px,70px 110px}}'+
+      '@keyframes ds-sweep{0%{transform:translateX(-120%) rotate(18deg);opacity:0}20%{opacity:.42}75%{opacity:.22}100%{transform:translateX(120%) rotate(18deg);opacity:0}}'+
+      '@keyframes ds-title{0%,100%{opacity:.62;letter-spacing:.38em}50%{opacity:1;letter-spacing:.48em}}'+
+      '.scene{position:absolute;inset:-5%;background-image:linear-gradient(180deg,#07111bd9,#08101980 52%,#07111be8),${safeImage};background-position:center;background-size:cover;animation:ds-bloom 6s ease-in-out infinite}'+
+      '.dust{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 11% 18%,#eaf6ffcc 98%,transparent),radial-gradient(1.5px 1.5px at 79% 26%,#c5e2f4b3 98%,transparent),radial-gradient(1px 1px at 42% 72%,#fff9 98%,transparent),radial-gradient(2px 2px at 68% 86%,#d5ebffb3 98%,transparent),radial-gradient(1px 1px at 24% 58%,#d7edff99 98%,transparent);background-size:190px 210px,250px 240px,230px 260px,310px 280px,180px 240px;animation:ds-dust 11s linear infinite;mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}'+
+      '.halo{position:absolute;left:50%;top:43%;width:min(64vw,66vh);aspect-ratio:1;transform:translate(-50%,-50%);border:1px solid #d9edff42;border-radius:50%;box-shadow:0 0 55px #a8d8ff20,inset 0 0 55px #a8d8ff18}.halo:before,.halo:after{content:"";position:absolute;inset:8%;border:1px solid #e5f3ff31;border-radius:50%;transform:rotate(-30deg) scaleX(.72)}.halo:after{inset:17%;transform:rotate(34deg) scaleX(.82);border-style:dashed}'+
+      '.sweep{position:absolute;inset:-20%;background:linear-gradient(90deg,transparent,#d8efff16,transparent);animation:ds-sweep 5s ease-in-out infinite;mix-blend-mode:screen}'+
+      '.title{position:absolute;left:0;right:0;top:calc(43% + min(36vw,37vh));text-align:center;color:#eff8ff;font:300 19px system-ui,sans-serif;animation:ds-title 4s ease-in-out infinite;text-shadow:0 0 24px #d8efff88}'+
+      '.subtitle{position:absolute;left:0;right:0;top:calc(43% + min(36vw,37vh) + 43px);text-align:center;color:#c3d8e8a8;font:10px system-ui,sans-serif;letter-spacing:.24em}'+
+      '@media(prefers-reduced-motion:reduce){.scene,.dust,.sweep,.title{animation:none}}'+
+      '</style><div class="scene"></div><div class="dust"></div><div class="halo"></div><div class="sweep"></div><div class="title">MASTER</div><div class="subtitle">SILVER DRAGON · AWAKENING</div>';
     root.append(element);
+    let removed=false;
     const timer=setTimeout(()=>remove(),90000);
-    function remove(){clearTimeout(timer);element.remove();if(window[key]?.element===element)delete window[key];}
+    function remove(){if(removed)return;removed=true;clearTimeout(timer);element.style.opacity='0';setTimeout(()=>{element.remove();if(window[key]?.element===element)delete window[key];},760);}
     window[key]={element,remove};
     return true;
   })()`;
@@ -253,6 +269,7 @@ export async function installEarlyCover() {
     throw new Error("No valid current Dream Skin session is available for the startup cover.");
   }
   await verifyStoreOwner(path.join(payloadRoot, "scripts", "common-windows.ps1"), statePath, state);
+  const backgroundImage = await readThemeImage(path.join(stateRoot, "active-theme")).catch(() => null);
   const anchorUrl = assertBrowserIdentity(await fetchJson(state.port, "/json/version"), state.port, state.browserId);
   const anchor = new CdpSession(anchorUrl);
   const sessions = [];
@@ -269,7 +286,7 @@ export async function installEarlyCover() {
         sessions.push(session);
         try {
           await session.open();
-          const installed = await session.evaluate(earlyCoverExpression(), 1000);
+          const installed = await session.evaluate(earlyCoverExpression(backgroundImage), 10000);
           if (installed) {
             await verifyStoreOwner(path.join(payloadRoot, "scripts", "common-windows.ps1"), statePath, state);
             return { installed: true };

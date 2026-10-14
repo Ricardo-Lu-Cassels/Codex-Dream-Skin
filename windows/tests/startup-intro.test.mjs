@@ -92,22 +92,27 @@ test("launch durations include the reference 12-second sequence", () => {
   }
 });
 
-test("the early startup cover is opaque, idempotent and removable", () => {
+test("the early startup cover animates the active art and fades out on handoff", () => {
   const children = [];
   const window = {};
-  const context = { window, setTimeout: () => 1, clearTimeout() {}, document: {
+  const context = { window, setTimeout: (callback, delay) => { if (delay < 1000) callback(); return 1; }, clearTimeout() {}, document: {
     documentElement: { append(element) { children.push(element); element.isConnected = true; } },
     createElement() { return { style: {}, setAttribute() {}, remove() { this.isConnected = false; } }; },
   } };
-  const expression = earlyCoverExpression();
+  const expression = earlyCoverExpression("data:image/png;base64,aGVsbG8=");
   assert.equal(vm.runInNewContext(expression, context), true);
   assert.equal(children.length, 1);
   assert.equal(children[0].style.background, "#050a0f");
   assert.equal(children[0].style.zIndex, "2147483646");
+  assert.match(children[0].innerHTML, /SILVER DRAGON · AWAKENING/);
+  assert.match(children[0].innerHTML, /data:image\/png;base64,aGVsbG8=/);
+  assert.match(children[0].innerHTML, /@keyframes ds-dust/);
   assert.equal(vm.runInNewContext(expression, context), true);
   assert.equal(children.length, 1);
   window.__CODEX_DREAM_SKIN_STARTUP_COVER__.remove();
   assert.equal(children[0].isConnected, false);
+  assert.equal(children[0].style.opacity, "0");
+  assert.equal(earlyCoverExpression("https://example.com/image.png").includes("https://example.com"), false);
 });
 
 test("active themes cannot read outside their local image or supply remote URLs", async () => {
